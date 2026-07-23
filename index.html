@@ -26,6 +26,15 @@ body{background:var(--bg);color:var(--ink);display:flex;flex-direction:column;
   color:var(--ink2);font:inherit;font-weight:600;cursor:pointer;white-space:nowrap}
 .tab:hover{color:var(--ink)}
 .tab.active{background:var(--accentsoft);border-color:var(--accent);color:var(--accent)}
+/* sub-tab bar (Micro Analysis) */
+.subbar{flex:none;display:none;align-items:center;gap:6px;padding:7px 18px;
+  background:var(--bar);border-bottom:1px solid var(--line)}
+.subbar.show{display:flex}
+.subbar .lbl{font-size:11px;color:var(--ink2);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-right:4px}
+.subtab{padding:5px 14px;border:1px solid var(--line);border-radius:7px;background:transparent;
+  color:var(--ink2);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;white-space:nowrap}
+.subtab:hover{color:var(--ink)}
+.subtab.active{background:var(--accentsoft);border-color:var(--accent);color:var(--accent)}
 .stage{flex:1;position:relative}
 iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:var(--bg)}
 iframe.hide{visibility:hidden;pointer-events:none}
@@ -37,34 +46,59 @@ iframe.hide{visibility:hidden;pointer-events:none}
 </head>
 <body>
 <div class="bar">
-  <div class="brand">Allo — Clinic Trackers<small>Revenue &amp; Macro analysis</small></div>
+  <div class="brand">Allo — Clinic Trackers<small>Revenue · Macro · Micro analysis</small></div>
   <div class="tabs">
     <button class="tab active" data-t="rev">Revenue</button>
     <button class="tab" data-t="macro">Macro Analysis</button>
+    <button class="tab" data-t="micro">Micro Analysis</button>
   </div>
   <div class="open"><a id="openLink" href="#" target="_blank" rel="noopener">Open full ↗</a></div>
 </div>
+<div class="subbar" id="subbar">
+  <span class="lbl">Micro</span>
+  <button class="subtab active" data-s="offline">Offline Summary</button>
+  <button class="subtab" data-s="online">Online Summary</button>
+  <button class="subtab" data-s="repeat">Repeat Summary</button>
+</div>
 <div class="stage">
-  <iframe id="rev"   title="Clinic Pulse — Revenue"></iframe>
-  <iframe id="macro" title="Macro Analysis" class="hide"></iframe>
+  <iframe id="rev"    title="Clinic Pulse — Revenue"></iframe>
+  <iframe id="macro"  title="Macro Analysis" class="hide"></iframe>
+  <iframe id="micro"  title="Micro Analysis" class="hide"></iframe>
 </div>
 <script>
+const MICRO='https://vishesh-png.github.io/Clinic-Micro-Dashboard/';
 const SRC = {
   rev:   'https://vishesh-png.github.io/Clinic-Pulse-Tracker/',
-  macro: 'https://vishesh-png.github.io/Macro-Level-Analysis/'
+  macro: 'https://vishesh-png.github.io/Macro-Level-Analysis/',
+  micro: MICRO+'offline.html'
 };
-const frames = { rev:document.getElementById('rev'), macro:document.getElementById('macro') };
+const MSRC = { offline:MICRO+'offline.html', online:MICRO+'online.html', repeat:MICRO+'repeat.html' };
+const frames = { rev:document.getElementById('rev'), macro:document.getElementById('macro'), micro:document.getElementById('micro') };
 const loaded = {};
+let sub = 'offline';
+
+function showMicroSub(s){
+  sub = s;
+  frames.micro.src = MSRC[s]; loaded.micro = true;
+  document.querySelectorAll('.subtab').forEach(b=>b.classList.toggle('active', b.dataset.s===s));
+  document.getElementById('openLink').href = MSRC[s];
+  try{ history.replaceState(null,'', '#micro/'+s); }catch(e){}
+}
 function show(t){
-  // lazy-load an iframe the first time its tab is opened
-  if(!loaded[t]){ frames[t].src = SRC[t]; loaded[t] = true; }
+  if(t!=='micro' && !loaded[t]){ frames[t].src = SRC[t]; loaded[t] = true; }
   for(const k in frames) frames[k].classList.toggle('hide', k!==t);
   document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active', b.dataset.t===t));
-  document.getElementById('openLink').href = SRC[t];
-  try{ history.replaceState(null,'', '#'+t); }catch(e){}
+  document.getElementById('subbar').classList.toggle('show', t==='micro');
+  if(t==='micro'){ showMicroSub(sub); }
+  else{ document.getElementById('openLink').href = SRC[t]; try{ history.replaceState(null,'', '#'+t); }catch(e){} }
 }
 document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>show(b.dataset.t)));
-show(location.hash==='#macro' ? 'macro' : 'rev');
+document.querySelectorAll('.subtab').forEach(b=>b.addEventListener('click',()=>showMicroSub(b.dataset.s)));
+// deep-link support: #macro, #micro, #micro/online
+const h=location.hash.replace('#','');
+if(h.indexOf('micro')===0){ const parts=h.split('/'); sub=(parts[1]&&MSRC[parts[1]])?parts[1]:'offline'; show('micro'); }
+else if(h==='macro') show('macro');
+else show('rev');
 </script>
 </body>
 </html>
